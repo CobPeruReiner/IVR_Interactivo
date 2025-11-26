@@ -1,14 +1,17 @@
 import jwt from "jsonwebtoken";
 
 // Generar JWT
-export const generarJWT = async (id = "") => {
+export const generarJWT = async (id = "", expireTime = "6h") => {
+  console.log(" ====== GENERAR JSON WEB TOKEN ======");
+  console.log(id, expireTime);
+
   try {
     console.log(`Generando token para el usuario ${id}`);
 
     const payload = { id };
 
     const token = jwt.sign(payload, process.env.JWT_KEY || "secret", {
-      expiresIn: "1d",
+      expiresIn: expireTime,
     });
 
     return token;
@@ -20,6 +23,7 @@ export const generarJWT = async (id = "") => {
 
 // Verificar JWT
 export const comprobarJWT = (token = "") => {
+  console.log(" ====== VERIFICAR JSON WEB TOKEN ======");
   console.log(`Verificando token: ${token}`);
 
   try {

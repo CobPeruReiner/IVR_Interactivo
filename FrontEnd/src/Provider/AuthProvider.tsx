@@ -16,14 +16,16 @@ const initialAuth: AuthInitialState = {
 export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [auth, setAuth] = useState(initialAuth);
 
-  const [responseToken, setResponseToken] = useState<boolean>(false);
+  const [posting, setPosting] = useState(false);
 
   const LoginRequest = async (
     credentials: CredentialsLoginState
   ): Promise<boolean> => {
+    setPosting(true);
+
     try {
       const { data } = await api.post<SuccesResponseLogin>(
-        "/api/auth/login",
+        "/auth/login",
         credentials
       );
 
@@ -35,14 +37,13 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         user: data.user,
       });
 
-      setResponseToken(true);
       return true;
     } catch (err) {
       console.error("Error en Login:", err);
 
-      setResponseToken(false);
-
       return false;
+    } finally {
+      setPosting(false);
     }
   };
 
@@ -54,6 +55,41 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       logged: false,
       user: null,
     });
+  };
+
+  const ForgetPasswordRequest = async (email: string): Promise<boolean> => {
+    setPosting(true);
+
+    try {
+      await api.post("/auth/forget-password", { email });
+      return true;
+    } catch (error) {
+      console.error("Error en ForgetPassword:", error);
+      return false;
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const ResetPasswordRequest = async (
+    token: string | undefined,
+    newPassword: string
+  ): Promise<boolean> => {
+    setPosting(true);
+
+    try {
+      await api.post(`/auth/reset-password/${token}`, {
+        newPassword,
+      });
+
+      return true;
+    } catch (error) {
+      console.error("Error en ResetPassword:", error);
+
+      return false;
+    } finally {
+      setPosting(false);
+    }
   };
 
   const RefreshTokenRequest = useCallback(async (): Promise<boolean> => {
@@ -69,7 +105,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         return false;
       }
 
-      const { data } = await api.get<SuccesResponseLogin>("/api/auth/refresh", {
+      const { data } = await api.get<SuccesResponseLogin>("/auth/refresh", {
         headers: {
           "x-token": token,
         },
@@ -96,10 +132,12 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   return (
     <AuthContext.Provider
       value={{
+        posting,
         auth,
-        responseToken,
         LoginRequest,
         LogoutRequest,
+        ForgetPasswordRequest,
+        ResetPasswordRequest,
         RefreshTokenRequest,
       }}
     >

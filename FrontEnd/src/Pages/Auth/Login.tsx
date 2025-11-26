@@ -3,9 +3,10 @@ import { AuthContext } from "../../Context/AuthContext";
 import { toast, Toaster } from "sonner";
 import { View, ViewOff } from "../../UI/Iconos";
 import { inputBorder, labelBorder } from "../../UI/Inputs";
+import { Link } from "react-router-dom";
 
 export const Login = () => {
-  const { LoginRequest } = useContext(AuthContext);
+  const { posting, LoginRequest } = useContext(AuthContext);
 
   const [form, setForm] = useState({
     usuario: "",
@@ -50,9 +51,11 @@ export const Login = () => {
                 type="text"
                 placeholder=""
                 className={inputBorder}
+                value={form.usuario}
                 onChange={(e) =>
                   setForm({ ...form, usuario: e.target.value.trim() })
                 }
+                disabled={posting}
               />
               <label className={labelBorder}>DNI</label>
             </div>
@@ -62,7 +65,9 @@ export const Login = () => {
                 type={showPassword ? "text" : "password"}
                 placeholder=""
                 className={inputBorder}
+                value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
+                disabled={posting}
               />
 
               <button
@@ -78,10 +83,21 @@ export const Login = () => {
 
             <button
               type="submit"
-              className="w-full bg-black text-white py-2 rounded-md font-semibold hover:bg-black/90 cursor-pointer transition-all duration-500"
+              className="w-full bg-black text-white py-2 rounded-md font-semibold hover:bg-black/90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none transition-all duration-500"
+              disabled={posting}
             >
               Iniciar Sesión
             </button>
+            <div className="flex justify-end mt-2">
+              <button type="button" disabled={posting}>
+                <Link
+                  to="/forget-password"
+                  className="text-sm text-[#09c] hover:underline"
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </button>
+            </div>
           </form>
         </div>
       </div>

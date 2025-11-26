@@ -4,10 +4,15 @@ export interface CredentialsLoginState {
 }
 
 export interface AuthContextProps {
+  posting: boolean;
   auth: AuthInitialState;
-  responseToken: boolean;
   LogoutRequest: () => void;
   LoginRequest: (credentials: CredentialsLoginState) => Promise<boolean>;
+  ForgetPasswordRequest: (email: string) => Promise<boolean>;
+  ResetPasswordRequest: (
+    token: string | undefined,
+    newPassword: string
+  ) => Promise<boolean>;
   RefreshTokenRequest: () => Promise<boolean>;
 }
 
