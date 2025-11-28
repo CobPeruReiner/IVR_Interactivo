@@ -1,21 +1,11 @@
 services:
-
-  backend:
-    build: ./Backend
-    container_name: ivr-backend
+  ivr-app:
+    container_name: ivr-interactivo
+    build:
+      context: .
+      dockerfile: Backend/Dockerfile
     ports:
       - "4005:4005"
     env_file:
       - ./Backend/.env.production
-    restart: always
-
-  frontend:
-    build: ./FrontEnd
-    container_name: ivr-frontend
-    ports:
-      - "5173:5173"
-    env_file:
-      - ./FrontEnd/.env.production
-    depends_on:
-      - backend
     restart: always
