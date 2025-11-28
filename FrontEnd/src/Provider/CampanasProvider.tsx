@@ -90,7 +90,7 @@ export const CampanasProvider = ({ children }: PropsWithChildren) => {
   };
 
   const saveCampanaRequest = async (): Promise<SaveCampanaResult> => {
-    const today = moment().format("YYYY-MM-DD");
+    const today = moment().format("YYYY-MM-DD HH:mm:ss");
 
     console.log("File: ", formNCampaign);
 
