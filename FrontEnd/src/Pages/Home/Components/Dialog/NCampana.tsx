@@ -1,5 +1,5 @@
-import { useContext, useRef } from "react";
-import { Close, Download, Send, Upload, Volume } from "../../../../UI/Iconos";
+import { useContext, useRef, useState } from "react";
+import * as Icon from "../../../../UI/Iconos";
 import { CampanasContext } from "../../../../Context/CampanasContext";
 import {
   buttonExcel,
@@ -13,6 +13,10 @@ import { descargarPlantillaCSV } from "../../../../Utils/PlantillaCampana";
 import { insertarEnCursor } from "../../../../Utils/InsertarEnCursor";
 import { toast } from "sonner";
 import { leerCSVYValidar } from "../../../../Utils/validarPlantillaCampana";
+import {
+  detenerLecturaIVR,
+  escucharMuestraIVR,
+} from "../../../../Helper/EscucharMuestraIVR";
 
 export const NCampana = () => {
   const {
@@ -31,6 +35,8 @@ export const NCampana = () => {
     clearFileCampaign,
     setFileCampaign,
   } = useContext(CampanasContext);
+
+  const [reproduciendo, setReproduciendo] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -103,7 +109,7 @@ export const NCampana = () => {
               disabled={postingNuevaCampaign}
               className="p-2 rounded-full hover:bg-gray-100 transition"
             >
-              <Close className="text-gray-600 text-xl" />
+              <Icon.Close className="text-gray-600 text-xl" />
             </button>
           </div>
 
@@ -137,7 +143,7 @@ export const NCampana = () => {
                 className={buttonExcel}
                 onClick={descargarPlantillaCSV}
               >
-                <Download className="text-lg" />
+                <Icon.Download className="text-lg" />
                 Descargar Plantilla (.csv)
               </button>
             </div>
@@ -176,7 +182,7 @@ export const NCampana = () => {
                   }}
                 />
 
-                <Upload className="text-3xl text-gray-500 mb-2" />
+                <Icon.Upload className="text-3xl text-gray-500 mb-2" />
                 <p className="text-sm text-gray-600">
                   Haz clic para seleccionar el archivo
                 </p>
@@ -310,18 +316,43 @@ export const NCampana = () => {
           </div>
 
           {/* Botones de acción */}
-          <div className="flex gap-3">
-            <button type="button" className={buttonSecondary}>
-              <Volume className="text-lg" />
+          <div className="flex w-full gap-5">
+            <button
+              type="button"
+              disabled={!csvPreview.length}
+              onClick={() =>
+                escucharMuestraIVR(
+                  formNCampaign.guionIVRCampaign,
+                  csvPreview,
+                  () => setReproduciendo(true),
+                  () => setReproduciendo(false)
+                )
+              }
+              className={`${buttonSecondary}`}
+            >
+              <Icon.Volume className="text-lg" />
               Escuchar Muestra
+            </button>
+
+            <button
+              type="button"
+              disabled={!reproduciendo}
+              onClick={() => {
+                detenerLecturaIVR();
+                setReproduciendo(false);
+              }}
+              className={buttonPDF}
+            >
+              <Icon.Stop className="text-lg" />
+              Detener
             </button>
 
             <button
               type="submit"
               disabled={postingNuevaCampaign}
-              className={buttonSubmit}
+              className={`${buttonSubmit}`}
             >
-              <Send className="text-lg" />
+              <Icon.Send className="text-lg" />
               Enviar Campaña IVR
             </button>
           </div>

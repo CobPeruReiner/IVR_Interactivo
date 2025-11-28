@@ -51,6 +51,8 @@ export const CampanasProvider = ({ children }: PropsWithChildren) => {
   const closeMNuevaCampaign = () => {
     setMNuevaCampaign(false);
     setFormNCampaign(initialCampaign);
+    setCsvPreview([]);
+    setCsvErrores([]);
   };
 
   useOutsideClick(refMNuevaCampaign, () => setMNuevaCampaign(false));
@@ -92,7 +94,7 @@ export const CampanasProvider = ({ children }: PropsWithChildren) => {
   const saveCampanaRequest = async (): Promise<SaveCampanaResult> => {
     const today = moment().format("YYYY-MM-DD HH:mm:ss");
 
-    console.log("File: ", formNCampaign);
+    // console.log("File: ", formNCampaign);
 
     if (
       !formNCampaign.nameCampaign ||

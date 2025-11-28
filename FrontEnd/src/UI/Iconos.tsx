@@ -211,6 +211,24 @@ export function Calls(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+export function Stop(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="1em"
+      height="1em"
+      viewBox="0 0 16 16"
+      {...props}
+    >
+      <path
+        fill="currentColor"
+        fillRule="evenodd"
+        d="M4 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2m0 1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1z"
+      />
+    </svg>
+  );
+}
+
 export function LogOut(props: SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -353,16 +371,16 @@ export function Volume(props: SVGProps<SVGSVGElement>) {
       xmlns="http://www.w3.org/2000/svg"
       width="1em"
       height="1em"
-      viewBox="0 0 16 16"
+      viewBox="0 0 24 24"
       {...props}
     >
       <path
-        fill="currentColor"
-        d="m11.8 2.4l-.5 1C12.4 4.8 13 6.6 13 8.5c0 1.7-.5 3.2-1.3 4.6l.7.8c1.1-1.5 1.7-3.4 1.7-5.4c-.1-2.3-.9-4.4-2.3-6.1"
-      />
-      <path
-        fill="currentColor"
-        d="m10.8 4.4l-.5 1.1c.5.9.8 1.9.8 3c0 1-.3 2-.7 2.9l.7.9c.6-1.1 1-2.4 1-3.7c-.1-1.6-.5-3-1.3-4.2M4 5H0v6h4l5 4V1z"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="M15 8a5 5 0 0 1 0 8m2.7-11a9 9 0 0 1 0 14M6 15H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2l3.5-4.5A.8.8 0 0 1 11 5v14a.8.8 0 0 1-1.5.5z"
       />
     </svg>
   );
