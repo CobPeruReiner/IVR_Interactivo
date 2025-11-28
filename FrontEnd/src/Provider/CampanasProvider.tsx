@@ -1,7 +1,20 @@
-import { useRef, useState, type PropsWithChildren } from "react";
+import {
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type PropsWithChildren,
+} from "react";
 import { CampanasContext } from "../Context/CampanasContext";
-import type { FormCampaignState } from "../Interfaces/Campanas";
+import type {
+  FormCampaignState,
+  SaveCampanaResult,
+} from "../Interfaces/Campanas";
 import { useOutsideClick } from "../Hooks/useOutsideClick";
+import { api } from "../Api/api";
+import { AuthContext } from "../Context/AuthContext";
+import type { Cartera } from "../Interfaces/Cartera";
+import moment from "moment";
 
 const initialCampaign: FormCampaignState = {
   idCampaign: null,
@@ -14,6 +27,10 @@ const initialCampaign: FormCampaignState = {
 };
 
 export const CampanasProvider = ({ children }: PropsWithChildren) => {
+  const { auth } = useContext(AuthContext);
+
+  const [carteras, setCarteras] = useState<Cartera[] | []>([]);
+
   const [formNCampaign, setFormNCampaign] = useState(initialCampaign);
 
   const refMNuevaCampaign = useRef<HTMLDivElement | null>(null);
@@ -29,32 +46,100 @@ export const CampanasProvider = ({ children }: PropsWithChildren) => {
 
   useOutsideClick(refMNuevaCampaign, () => setMNuevaCampaign(false));
 
-  const submitNuevaCampaign = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleChangeCampaign = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    const { name, value, files } = e.target as HTMLInputElement;
+
+    if (name === "fileCampaign") {
+      setFormNCampaign((prev) => ({
+        ...prev,
+        fileCampaign: files?.[0] || null,
+      }));
+    } else {
+      setFormNCampaign((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
+  };
+
+  const saveCampanaRequest = async (): Promise<SaveCampanaResult> => {
+    const today = moment().format("YYYY-MM-DD");
+
+    if (
+      !formNCampaign.nameCampaign ||
+      !formNCampaign.idCarteraCampaign ||
+      !formNCampaign.fileCampaign ||
+      !formNCampaign.guionIVRCampaign
+    ) {
+      return { ok: false, type: "validation" };
+    }
 
     try {
       setPostingNuevaCampaign(true);
 
-      return true;
-    } catch (error) {
-      console.log(error);
+      const formData = new FormData();
 
-      return false;
+      formData.append("NOMBRE_CAMPANIA", formNCampaign.nameCampaign);
+      formData.append("ID_CARTERA", String(formNCampaign.idCarteraCampaign));
+      formData.append("FECHA_INICIO", today);
+      formData.append(
+        "ID_PERSONAL_REGISTRO",
+        auth.user?.IDPERSONAL.toString() || ""
+      );
+
+      formData.append("NOMBRE", "PROMPT AUTOMATICO");
+      formData.append("CONTENIDO", formNCampaign.guionIVRCampaign);
+      formData.append("VERSION", "1");
+      formData.append("archivo", formNCampaign.fileCampaign);
+
+      await api.post("/campania/save-campana", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      closeMNuevaCampaign();
+      return { ok: true };
+    } catch (error) {
+      console.error("Error al crear campaña:", error);
+      return { ok: false, type: "server" };
     } finally {
       setPostingNuevaCampaign(false);
     }
   };
 
+  const getCarterasRequest = async () => {
+    try {
+      const { data } = await api.get("/cartera");
+
+      setCarteras(data.carteras);
+    } catch (error) {
+      console.error("Error al obtener las carteras:", error);
+
+      setCarteras([]);
+    }
+  };
+
+  useEffect(() => {
+    getCarterasRequest();
+  }, []);
+
   return (
     <CampanasContext.Provider
       value={{
         formNCampaign,
+        handleChangeCampaign,
         refMNuevaCampaign,
         mNuevaCampaign,
         openMNuevaCampaign,
         closeMNuevaCampaign,
         postingNuevaCampaign,
-        submitNuevaCampaign,
+        saveCampanaRequest,
+        carteras,
       }}
     >
       {children}

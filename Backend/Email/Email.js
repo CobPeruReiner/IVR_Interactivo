@@ -6,45 +6,46 @@ export class Email {
     this.from = `"CyC Cobranzas Perú · Soporte" <${process.env.MAIL_FROM}>`;
   }
 
-  async sendResetPassword({ name, url }) {
-    console.log(" ======= SEND RESET PASSWORD =======");
-    console.log(name, url);
+  async sendNewPassword({ name, password }) {
+    console.log(" ======= SEND NEW PASSWORD =======");
 
     const empresa = "CyC Cobranzas Perú";
     const anio = new Date().getFullYear();
 
     const html = `
-      <div style="font-family: Arial; max-width: 600px; margin:auto;">
-        <h2 style="color:#09c">Hola ${name}</h2>
-        <p>Solicitaste restablecer tu contraseña en <b>${empresa}</b>.</p>
+    <div style="font-family: Arial; max-width: 600px; margin:auto;">
+      <h2 style="color:#09c">Hola ${name}</h2>
 
-        <a href="${url}" style="
-          display:inline-block;
-          padding:10px 20px;
-          background:#09c;
-          color:white;
-          border-radius:6px;
-          text-decoration:none;
-          font-weight:bold;
-        ">
-          Crear nueva contraseña
-        </a>
+      <p>Se ha generado una nueva contraseña para tu acceso a <b>${empresa}</b>:</p>
 
-        <p style="margin-top:15px">
-          Este enlace expira en 15 minutos.
-        </p>
-
-        <hr />
-        <small>© ${empresa} - ${anio}</small>
+      <div style="
+        margin:15px 0;
+        padding:12px;
+        background:#f4f4f4;
+        border-radius:6px;
+        font-size:18px;
+        font-weight:bold;
+        text-align:center;
+        letter-spacing:2px;
+      ">
+        ${password}
       </div>
-    `;
 
-    const text = `Hola ${name}, entra aquí para cambiar tu contraseña: ${url}`;
+      <p style="margin-top:10px">
+        Te recomendamos cambiarla luego de iniciar sesión.
+      </p>
+
+      <hr />
+      <small>© ${empresa} - ${anio}</small>
+    </div>
+  `;
+
+    const text = `Hola ${name}, tu nueva contraseña es: ${password}. Te recomendamos cambiarla al ingresar.`;
 
     return transporter.sendMail({
       from: this.from,
       to: this.to,
-      subject: "Recuperación de contraseña",
+      subject: "Nueva contraseña de acceso",
       html,
       text,
     });

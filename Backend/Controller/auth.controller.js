@@ -4,6 +4,7 @@ import md5 from "md5";
 import { db4 } from "../DB/config.js";
 import jwt from "jsonwebtoken";
 import { Email } from "../Email/Email.js";
+import crypto from "crypto";
 
 export const LoginRequest = async (req, res) => {
   try {
@@ -96,20 +97,42 @@ export const ForgetPasswordRequest = async (req, res) => {
 
     const user = result[0];
 
-    const resetToken = await generarJWT(user.IDPERSONAL, "15m");
+    const chars =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*?_";
+    let newPassword = "";
 
-    const resetUrl = `${process.env.FRONT_URL}/reset-password/${resetToken}`;
+    for (let i = 0; i < 5; i++) {
+      const index = crypto.randomInt(0, chars.length);
+      newPassword += chars[index];
+    }
+
+    const newPasswordMD5 = md5(newPassword);
+
+    await db4.query(
+      `
+      UPDATE personal 
+      SET PASSWORD = :password
+      WHERE IDPERSONAL = :id
+      `,
+      {
+        replacements: {
+          password: newPasswordMD5,
+          id: user.IDPERSONAL,
+        },
+        type: QueryTypes.UPDATE,
+      }
+    );
 
     const emailService = new Email(user.EMAIL);
 
-    await emailService.sendResetPassword({
+    await emailService.sendNewPassword({
       name: user.NOMBRES,
-      url: resetUrl,
+      password: newPassword,
     });
 
     return res.json({
       ok: true,
-      msg: "Correo de recuperación enviado",
+      msg: "Se envió una nueva contraseña al correo",
     });
   } catch (error) {
     console.error("Forget password error:", error);

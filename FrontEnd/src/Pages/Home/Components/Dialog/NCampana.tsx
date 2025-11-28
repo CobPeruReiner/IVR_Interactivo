@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useRef } from "react";
 import { Close, Download, Send, Upload, Volume } from "../../../../UI/Iconos";
 import { CampanasContext } from "../../../../Context/CampanasContext";
 import {
@@ -8,16 +8,61 @@ import {
 } from "../../../../UI/Buttons";
 import { inputTextAreaL, labelTextAreaL } from "../../../../UI/TextArea";
 import { inputBorder, labelBorder } from "../../../../UI/Inputs";
+import { descargarPlantillaCSV } from "../../../../Utils/PlantillaCampana";
+import { insertarEnCursor } from "../../../../Utils/InsertarEnCursor";
+import { toast } from "sonner";
 
 export const NCampana = () => {
   const {
     formNCampaign,
+    handleChangeCampaign,
     refMNuevaCampaign,
     mNuevaCampaign,
     closeMNuevaCampaign,
     postingNuevaCampaign,
-    submitNuevaCampaign,
+    saveCampanaRequest,
+    carteras,
   } = useContext(CampanasContext);
+
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const insertParametro = (param: string) => {
+    if (!textareaRef.current) return;
+
+    const nuevoTexto = insertarEnCursor(
+      textareaRef.current,
+      formNCampaign.guionIVRCampaign,
+      param
+    );
+
+    const event = {
+      target: {
+        name: "guionIVRCampaign",
+        value: nuevoTexto,
+      },
+    } as unknown as React.ChangeEvent<HTMLTextAreaElement>;
+
+    handleChangeCampaign(event);
+    textareaRef.current.focus();
+  };
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const result = await saveCampanaRequest();
+
+    if (result.ok) {
+      toast.success("Campaña creada correctamente");
+    } else {
+      if (result.type === "validation") {
+        toast.warning("Completa todos los campos obligatorios");
+      }
+
+      if (result.type === "server") {
+        toast.error("Error al guardar la campaña. Intenta nuevamente");
+      }
+    }
+  };
 
   return (
     <div
@@ -34,7 +79,7 @@ export const NCampana = () => {
       >
         {/* Formulario */}
         <form
-          onSubmit={submitNuevaCampaign}
+          onSubmit={onSubmit}
           autoComplete="off"
           className="flex flex-col gap-6 h-full p-6 overflow-y-auto"
         >
@@ -56,10 +101,18 @@ export const NCampana = () => {
 
           {/* 1. Selección de Cartera */}
           <div className="space-y-2 flex flex-col gap-2 relative">
-            <select name="idCarteraCampaign" className={inputBorder}>
+            <select
+              name="idCarteraCampaign"
+              value={formNCampaign.idCarteraCampaign ?? ""}
+              onChange={handleChangeCampaign}
+              className={inputBorder}
+            >
               <option value="">Ninguna Cartera</option>
-              <option value="1">Cartera A</option>
-              <option value="2">Cartera B</option>
+              {carteras?.map((cartera) => (
+                <option key={cartera.id} value={cartera.id}>
+                  {cartera.cartera}
+                </option>
+              ))}
             </select>
             <label className={labelBorder}>Seleccione la Cartera</label>
           </div>
@@ -71,7 +124,11 @@ export const NCampana = () => {
             </label>
 
             <div className="container-button-download-plantilla">
-              <button type="button" className={buttonExcel}>
+              <button
+                type="button"
+                className={buttonExcel}
+                onClick={descargarPlantillaCSV}
+              >
                 <Download className="text-lg" />
                 Descargar Plantilla (.csv)
               </button>
@@ -87,6 +144,8 @@ export const NCampana = () => {
             <div className="relative p-5 border border-gray-300 border-dashed rounded-xl bg-gray-50 hover:bg-gray-100 transition cursor-pointer text-center">
               <input
                 type="file"
+                name="fileCampaign"
+                onChange={handleChangeCampaign}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 accept=".csv"
               />
@@ -94,7 +153,9 @@ export const NCampana = () => {
               <div className="flex flex-col items-center">
                 <Upload className="text-3xl text-gray-500 mb-2" />
                 <p className="text-sm text-gray-600">
-                  Haz clic para seleccionar el archivo
+                  {formNCampaign.fileCampaign
+                    ? formNCampaign.fileCampaign.name
+                    : "Haz clic para seleccionar el archivo"}
                 </p>
                 <p className="text-xs text-gray-400">(solo CSV)</p>
               </div>
@@ -106,17 +167,21 @@ export const NCampana = () => {
             <input
               type="text"
               name="nameCampaign"
-              placeholder=""
+              value={formNCampaign.nameCampaign}
+              onChange={handleChangeCampaign}
               className={inputBorder}
             />
             <label className={labelBorder}>Nombre de la Campaña</label>
           </div>
 
+          {/* Guion IVR */}
           <div className="space-y-2 flex flex-col gap-2 relative">
             <textarea
+              ref={textareaRef}
               name="guionIVRCampaign"
               rows={5}
-              placeholder=""
+              value={formNCampaign.guionIVRCampaign}
+              onChange={handleChangeCampaign}
               className={inputTextAreaL}
             />
 
@@ -137,20 +202,18 @@ export const NCampana = () => {
             </label>
 
             <div className="flex flex-wrap gap-2">
-              {[
-                "{{nombre}}",
-                "{{monto}}",
-                "{{fecha_limite}}",
-                "{{telefono}}",
-              ].map((param) => (
-                <button
-                  key={param}
-                  type="button"
-                  className="px-3 py-1.5 rounded-md text-xs bg-green-100 text-green-700 hover:bg-green-200 transition"
-                >
-                  {param}
-                </button>
-              ))}
+              {["{{NOMBRE}}", "{{MONTO}}", "{{FVENC}}", "{{TELEFONO}}"].map(
+                (param) => (
+                  <button
+                    key={param}
+                    type="button"
+                    onClick={() => insertParametro(param)}
+                    className="px-3 py-1.5 rounded-md text-xs bg-green-100 text-green-700 hover:bg-green-200 transition"
+                  >
+                    {param}
+                  </button>
+                )
+              )}
             </div>
           </div>
 

@@ -1,3 +1,4 @@
+import { Toaster } from "sonner";
 import type { Campaign } from "../../Interfaces/Campanas";
 import { Layout } from "../../Layout/Layout";
 import { Campanas } from "./Components/Cards/Campanas/Campanas";
@@ -35,6 +36,7 @@ export const Home = () => {
     <Layout
       children={
         <>
+          <Toaster richColors />
           <Campanas campaigns={campaigns} />
           <NCampana />
         </>

@@ -1,4 +1,9 @@
 import type { RefObject } from "react";
+import type { Cartera } from "./Cartera";
+
+export type SaveCampanaResult =
+  | { ok: true }
+  | { ok: false; type: "validation" | "server" };
 
 export interface FormCampaignState {
   idCampaign: number | null;
@@ -12,12 +17,18 @@ export interface FormCampaignState {
 
 export interface CampaignContextProps {
   formNCampaign: FormCampaignState;
+  handleChangeCampaign: (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => void;
   refMNuevaCampaign: RefObject<HTMLDivElement | null>;
   mNuevaCampaign: boolean;
   openMNuevaCampaign: () => void;
   closeMNuevaCampaign: () => void;
   postingNuevaCampaign: boolean;
-  submitNuevaCampaign: (e: React.FormEvent<Element>) => Promise<boolean>;
+  saveCampanaRequest: () => Promise<SaveCampanaResult>;
+  carteras: [] | Cartera[];
 }
 
 export interface Campaign {
