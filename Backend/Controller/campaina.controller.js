@@ -4,7 +4,10 @@ import moment from "moment";
 import axios from "axios";
 import { QueryTypes } from "sequelize";
 import { db4 } from "../DB/config.js";
+import { normalizarTexto } from "../Helper/normalizar-text.js";
+import { normalizarFechaBackend } from "../Helper/normalizarFechaBacjend.js";
 
+// CREAR CAMPAÑA
 export const createCampanaRequest = async (req, res) => {
   const {
     NOMBRE_CAMPANIA,
@@ -25,15 +28,92 @@ export const createCampanaRequest = async (req, res) => {
     });
   }
 
-  const registrosCSV = [];
-
   try {
+    //  1. OBTENER CARTERA
+    const [carteraData] = await db4.query(
+      `
+      SELECT cartera
+      FROM SISTEMAGEST.cartera
+      WHERE id = :ID_CARTERA
+      `,
+      {
+        replacements: { ID_CARTERA },
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    if (!carteraData) {
+      return res.status(400).json({
+        ok: false,
+        msg: "La cartera no existe",
+      });
+    }
+
+    const siglaCartera = carteraData.cartera
+      .split(" ")
+      .map((p) => p[0])
+      .join("")
+      .toUpperCase();
+
+    //  2. FECHA FORMATEADA
+    const fechaFormateada = moment(FECHA_INICIO).format("YYYYMMDD");
+
+    //  3. CORRELATIVO
+    const [contadorData] = await db4.query(
+      `
+      SELECT COUNT(*) AS total
+      FROM IVR_INTERACTIVO.CAMPANIA
+      WHERE ID_CARTERA = :ID_CARTERA
+      AND DATE(FECHA_INICIO) = :FECHA_INICIO
+      `,
+      {
+        replacements: {
+          ID_CARTERA,
+          FECHA_INICIO,
+        },
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    const correlativo = String(contadorData.total + 1).padStart(2, "0");
+
+    //  4. NORMALIZAR TEXTO
+    const descripcionNormalizada = normalizarTexto(
+      NOMBRE_CAMPANIA || "GENERAL"
+    );
+
+    //  5. NOMBRE FINAL
+    const NOMBRE_CAMPANIA_AUTOMATICO = `CAMP-${siglaCartera}-${fechaFormateada}-${correlativo}-${descripcionNormalizada}`;
+
+    //  6. VALIDAR QUE NO EXISTA
+    const [existeNombre] = await db4.query(
+      `
+      SELECT COUNT(*) AS total
+      FROM IVR_INTERACTIVO.CAMPANIA
+      WHERE NOMBRE_CAMPANIA = :NOMBRE
+      `,
+      {
+        replacements: { NOMBRE: NOMBRE_CAMPANIA_AUTOMATICO },
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    if (existeNombre.total > 0) {
+      return res.status(409).json({
+        ok: false,
+        msg: "Ya existe una campaña con ese nombre",
+      });
+    }
+
+    //  7. PROCESAR CSV
+    const registrosCSV = [];
+
     await new Promise((resolve, reject) => {
       const bufferStream = new stream.PassThrough();
       bufferStream.end(archivo.buffer);
 
       bufferStream
-        .pipe(csv())
+        .pipe(csv({ separator: ";" }))
         .on("data", (row) => {
           registrosCSV.push({
             NOMBRE_CLIENTE: row.NOMBRE_CLIENTE,
@@ -53,6 +133,19 @@ export const createCampanaRequest = async (req, res) => {
       });
     }
 
+    // 7.1 NORMALIZACIÓN AUTOMÁTICA (EXCEL FRIENDLY)
+    registrosCSV.forEach((r) => {
+      r.NOMBRE_CLIENTE = String(r.NOMBRE_CLIENTE || "").trim();
+      r.NUMERO = String(r.NUMERO || "")
+        .replace(/^'+/, "")
+        .trim();
+      r.MONTO = String(r.MONTO || "")
+        .replace(/^'+/, "")
+        .trim();
+      r.FECHA_VENCIMIENTO = normalizarFechaBackend(r.FECHA_VENCIMIENTO);
+    });
+
+    //  7.2 VALIDACIONES FINALES ESTRICTAS
     const errores = [];
     const numerosSet = new Set();
 
@@ -66,22 +159,27 @@ export const createCampanaRequest = async (req, res) => {
         !r.FECHA_VENCIMIENTO
       ) {
         errores.push(`Fila ${fila}: campos incompletos`);
+        return;
       }
 
-      if (isNaN(r.NUMERO)) {
+      if (isNaN(r.NUMERO) || Number(r.NUMERO) <= 0) {
         errores.push(`Fila ${fila}: número inválido`);
+        return;
       }
 
-      if (isNaN(r.MONTO) || Number(r.MONTO) < 0) {
+      if (isNaN(r.MONTO) || Number(r.MONTO) <= 0) {
         errores.push(`Fila ${fila}: monto inválido`);
+        return;
       }
 
       if (!moment(r.FECHA_VENCIMIENTO, "YYYY-MM-DD", true).isValid()) {
         errores.push(`Fila ${fila}: fecha de vencimiento inválida`);
+        return;
       }
 
       if (numerosSet.has(r.NUMERO)) {
         errores.push(`Fila ${fila}: número duplicado en el CSV`);
+        return;
       }
 
       numerosSet.add(r.NUMERO);
@@ -95,6 +193,7 @@ export const createCampanaRequest = async (req, res) => {
       });
     }
 
+    //  8. TRANSACCIÓN
     const transaction = await db4.transaction();
 
     try {
@@ -107,7 +206,7 @@ export const createCampanaRequest = async (req, res) => {
         `,
         {
           replacements: {
-            NOMBRE_CAMPANIA,
+            NOMBRE_CAMPANIA: NOMBRE_CAMPANIA_AUTOMATICO,
             ID_CARTERA,
             FECHA_INICIO,
             ID_PERSONAL_REGISTRO,
@@ -171,10 +270,10 @@ export const createCampanaRequest = async (req, res) => {
             id_prompt: 1,
           });
         } catch (callError) {
+          console.error("Error al originar llamada:", fila.NUMERO);
           console.error(
-            "Error al originar llamada:",
-            fila.NUMERO,
-            callError.message
+            "Detalle:",
+            callError.response?.data || callError.message
           );
         }
       }
@@ -183,6 +282,7 @@ export const createCampanaRequest = async (req, res) => {
         ok: true,
         msg: "Campaña creada correctamente con carga masiva",
         ID_CAMPANIA,
+        NOMBRE_CAMPANIA: NOMBRE_CAMPANIA_AUTOMATICO,
         totalRegistros: registrosCSV.length,
       });
     } catch (error) {
@@ -196,6 +296,55 @@ export const createCampanaRequest = async (req, res) => {
       ok: false,
       msg: "Error al crear la campaña",
       error: error.message,
+    });
+  }
+};
+
+//  GET DE CAMPAÑAS
+export const getCampanasRequest = async (req, res) => {
+  try {
+    const campaigns = await db4.query(
+      `
+      SELECT 
+        C.ID_CAMPANIA   AS ID_CAMPANA,
+        C.NOMBRE_CAMPANIA AS NOMBRE_CAMPANA,
+        CA.cartera AS CARTERA_CAMPANA,
+        C.FECHA_INICIO AS FECHA_INICIO_CAMPANA,
+        COUNT(A.ID_CARGA) AS phones,
+        C.ESTADO_CAMPANIA AS ID_ESTADO_CAMPANA,
+        CASE C.ESTADO_CAMPANIA
+          WHEN 1 THEN 'EN CURSO'
+          WHEN 2 THEN 'FINALIZADO'
+          ELSE 'ERROR'
+        END AS ESTADO_CAMAPANA
+      FROM IVR_INTERACTIVO.CAMPANIA C
+      INNER JOIN SISTEMAGEST.cartera CA 
+        ON CA.id = C.ID_CARTERA
+      LEFT JOIN IVR_INTERACTIVO.CARGA_ARCHIVO A
+        ON A.ID_CAMPANIA = C.ID_CAMPANIA
+      GROUP BY 
+        C.ID_CAMPANIA,
+        C.NOMBRE_CAMPANIA,
+        CA.cartera,
+        C.FECHA_INICIO,
+        C.ESTADO_CAMPANIA
+      ORDER BY C.FECHA_INICIO DESC;
+      `,
+      {
+        type: QueryTypes.SELECT,
+      }
+    );
+
+    return res.json({
+      ok: true,
+      campaigns,
+    });
+  } catch (error) {
+    console.error("Error al obtener campañas:", error);
+
+    return res.status(500).json({
+      ok: false,
+      msg: "Error al obtener campañas",
     });
   }
 };

@@ -7,6 +7,8 @@ import {
 } from "react";
 import { CampanasContext } from "../Context/CampanasContext";
 import type {
+  Campaign,
+  CampanaCSVRow,
   FormCampaignState,
   SaveCampanaResult,
 } from "../Interfaces/Campanas";
@@ -29,9 +31,16 @@ const initialCampaign: FormCampaignState = {
 export const CampanasProvider = ({ children }: PropsWithChildren) => {
   const { auth } = useContext(AuthContext);
 
+  const [campanas, setCampanas] = useState<Campaign[]>([]);
+  const [loadingCampanas, setLoadingCampanas] = useState(false);
+
   const [carteras, setCarteras] = useState<Cartera[] | []>([]);
 
-  const [formNCampaign, setFormNCampaign] = useState(initialCampaign);
+  const [formNCampaign, setFormNCampaign] =
+    useState<FormCampaignState>(initialCampaign);
+
+  const [csvPreview, setCsvPreview] = useState<CampanaCSVRow[]>([]);
+  const [csvErrores, setCsvErrores] = useState<string[]>([]);
 
   const refMNuevaCampaign = useRef<HTMLDivElement | null>(null);
   const [mNuevaCampaign, setMNuevaCampaign] = useState(false);
@@ -66,8 +75,24 @@ export const CampanasProvider = ({ children }: PropsWithChildren) => {
     }
   };
 
+  const setFileCampaign = (file: File | null) => {
+    setFormNCampaign((prev) => ({
+      ...prev,
+      fileCampaign: file,
+    }));
+  };
+
+  const clearFileCampaign = () => {
+    setFormNCampaign((prev) => ({
+      ...prev,
+      fileCampaign: null,
+    }));
+  };
+
   const saveCampanaRequest = async (): Promise<SaveCampanaResult> => {
     const today = moment().format("YYYY-MM-DD");
+
+    console.log("File: ", formNCampaign);
 
     if (
       !formNCampaign.nameCampaign ||
@@ -103,6 +128,11 @@ export const CampanasProvider = ({ children }: PropsWithChildren) => {
       });
 
       closeMNuevaCampaign();
+      setFormNCampaign(initialCampaign);
+      setCsvPreview([]);
+      setCsvErrores([]);
+      getCampanasRequest();
+
       return { ok: true };
     } catch (error) {
       console.error("Error al crear campaña:", error);
@@ -115,17 +145,33 @@ export const CampanasProvider = ({ children }: PropsWithChildren) => {
   const getCarterasRequest = async () => {
     try {
       const { data } = await api.get("/cartera");
-
       setCarteras(data.carteras);
     } catch (error) {
       console.error("Error al obtener las carteras:", error);
-
       setCarteras([]);
+    }
+  };
+
+  const getCampanasRequest = async (): Promise<void> => {
+    try {
+      setLoadingCampanas(true);
+
+      const { data } = await api.get("/campania/get-campanas");
+
+      if (data.ok) {
+        setCampanas(data.campaigns);
+      }
+    } catch (error) {
+      console.error("Error al obtener campañas:", error);
+      setCampanas([]);
+    } finally {
+      setLoadingCampanas(false);
     }
   };
 
   useEffect(() => {
     getCarterasRequest();
+    getCampanasRequest();
   }, []);
 
   return (
@@ -140,6 +186,17 @@ export const CampanasProvider = ({ children }: PropsWithChildren) => {
         postingNuevaCampaign,
         saveCampanaRequest,
         carteras,
+
+        campanas,
+        loadingCampanas,
+        getCampanasRequest,
+
+        csvErrores,
+        setCsvErrores,
+        csvPreview,
+        setCsvPreview,
+        clearFileCampaign,
+        setFileCampaign,
       }}
     >
       {children}

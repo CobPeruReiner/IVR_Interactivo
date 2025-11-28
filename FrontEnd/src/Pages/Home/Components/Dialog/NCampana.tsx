@@ -3,6 +3,7 @@ import { Close, Download, Send, Upload, Volume } from "../../../../UI/Iconos";
 import { CampanasContext } from "../../../../Context/CampanasContext";
 import {
   buttonExcel,
+  buttonPDF,
   buttonSecondary,
   buttonSubmit,
 } from "../../../../UI/Buttons";
@@ -11,6 +12,7 @@ import { inputBorder, labelBorder } from "../../../../UI/Inputs";
 import { descargarPlantillaCSV } from "../../../../Utils/PlantillaCampana";
 import { insertarEnCursor } from "../../../../Utils/InsertarEnCursor";
 import { toast } from "sonner";
+import { leerCSVYValidar } from "../../../../Utils/validarPlantillaCampana";
 
 export const NCampana = () => {
   const {
@@ -22,6 +24,12 @@ export const NCampana = () => {
     postingNuevaCampaign,
     saveCampanaRequest,
     carteras,
+    csvErrores,
+    setCsvErrores,
+    csvPreview,
+    setCsvPreview,
+    clearFileCampaign,
+    setFileCampaign,
   } = useContext(CampanasContext);
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -123,7 +131,7 @@ export const NCampana = () => {
               Plantilla CSV
             </label>
 
-            <div className="container-button-download-plantilla">
+            <div className="container-download-plantilla">
               <button
                 type="button"
                 className={buttonExcel}
@@ -135,32 +143,116 @@ export const NCampana = () => {
             </div>
           </div>
 
-          {/* Carga de archivo - DropZone moderno */}
+          {/* CARGA / PREVIEW CSV */}
           <div className="space-y-2 flex flex-col gap-2">
             <label className="text-sm font-medium text-gray-700">
               Archivo de Teléfonos (.csv)
             </label>
 
-            <div className="relative p-5 border border-gray-300 border-dashed rounded-xl bg-gray-50 hover:bg-gray-100 transition cursor-pointer text-center">
-              <input
-                type="file"
-                name="fileCampaign"
-                onChange={handleChangeCampaign}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                accept=".csv"
-              />
+            {!csvPreview.length ? (
+              <div className="relative p-5 border border-gray-300 border-dashed rounded-xl bg-gray-50 hover:bg-gray-100 transition cursor-pointer text-center flex flex-col items-center gap-1.5">
+                <input
+                  type="file"
+                  accept=".csv"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
 
-              <div className="flex flex-col items-center">
+                    const { resultado, csvBlob } = await leerCSVYValidar(file);
+
+                    setCsvPreview(resultado.data);
+                    setCsvErrores(resultado.errores);
+
+                    if (resultado.data.length > 0) {
+                      const csvFileFinal = new File([csvBlob], "carga.csv", {
+                        type: "text/csv",
+                      });
+
+                      setFileCampaign(csvFileFinal);
+                    } else {
+                      clearFileCampaign();
+                    }
+                  }}
+                />
+
                 <Upload className="text-3xl text-gray-500 mb-2" />
                 <p className="text-sm text-gray-600">
-                  {formNCampaign.fileCampaign
-                    ? formNCampaign.fileCampaign.name
-                    : "Haz clic para seleccionar el archivo"}
+                  Haz clic para seleccionar el archivo
                 </p>
-                <p className="text-xs text-gray-400">(solo CSV)</p>
+                <p className="text-xs text-gray-400">(solo archivos .csv)</p>
               </div>
-            </div>
+            ) : (
+              <>
+                {/* PREVIEW */}
+                <div className="max-h-40 overflow-auto">
+                  <table className="w-full text-sm">
+                    <thead className="border-gray-100 dark:border-gray-800 border-y">
+                      <tr>
+                        <th className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                          Nombre
+                        </th>
+                        <th className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                          Teléfono
+                        </th>
+                        <th className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                          Monto
+                        </th>
+                        <th className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                          Vencimiento
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                      {csvPreview.map((r, i) => (
+                        <tr key={i}>
+                          <td className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                            {r.NOMBRE_CLIENTE}
+                          </td>
+                          <td className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                            {r.NUMERO}
+                          </td>
+                          <td className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                            {r.MONTO}
+                          </td>
+                          <td className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
+                            {r.FECHA_VENCIMIENTO}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* LIMPIAR */}
+                <div className="container-delete-plantilla">
+                  <button
+                    type="button"
+                    className={buttonPDF}
+                    onClick={() => {
+                      setCsvPreview([]);
+                      setCsvErrores([]);
+                      clearFileCampaign();
+                    }}
+                  >
+                    Limpiar archivo
+                  </button>
+                </div>
+              </>
+            )}
           </div>
+
+          {/* ERRORES */}
+          {csvErrores.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-md p-2 text-xs text-red-700">
+              <strong>Errores encontrados:</strong>
+              <ul className="list-disc pl-4">
+                {csvErrores.map((e, i) => (
+                  <li key={i}>{e}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {/* Nombre de la campaña */}
           <div className="space-y-2 flex flex-col gap-2 relative">

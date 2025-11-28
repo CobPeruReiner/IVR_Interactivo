@@ -1,19 +1,16 @@
 import { useContext } from "react";
-import type {
-  Campaign,
-  CampanasProps,
-} from "../../../../../Interfaces/Campanas";
 import { Add, Search } from "../../../../../UI/Iconos";
 import { CampanasContext } from "../../../../../Context/CampanasContext";
+import moment from "moment";
 
-const statusStyles: Record<Campaign["status"], string> = {
-  finalizado: "border-[rgb(76,175,80)] text-[rgb(76,175,80)]",
-  encurso: "border-[rgb(255,193,7)] text-[rgb(255,193,7)]",
-  error: "border-[rgb(244,67,53)] text-[rgb(244,67,53)]",
+const statusStylesById: Record<number, string> = {
+  1: "border-[rgb(255,193,7)] text-[rgb(255,193,7)]",
+  2: "border-[rgb(76,175,80)] text-[rgb(76,175,80)]",
+  3: "border-[rgb(244,67,53)] text-[rgb(244,67,53)]",
 };
 
-export const Campanas = ({ campaigns }: CampanasProps) => {
-  const { openMNuevaCampaign } = useContext(CampanasContext);
+export const Campanas = () => {
+  const { campanas, openMNuevaCampaign } = useContext(CampanasContext);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/3 sm:px-6">
@@ -50,7 +47,7 @@ export const Campanas = ({ campaigns }: CampanasProps) => {
                 Cartera
               </th>
               <th className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
-                Fecha
+                Fecha de Envío
               </th>
               <th className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
                 Teléfonos
@@ -65,36 +62,33 @@ export const Campanas = ({ campaigns }: CampanasProps) => {
           </thead>
 
           <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {campaigns.map((c) => (
-              <tr key={c.id}>
+            {campanas?.map((c) => (
+              <tr key={c.ID_CAMPANA}>
                 <td className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {c.id}
+                  {c.ID_CAMPANA}
                 </td>
                 <td className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {c.name}
+                  {c.NOMBRE_CAMPANA}
                 </td>
                 <td className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {c.category}
+                  {c.CARTERA_CAMPANA}
                 </td>
                 <td className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {c.date}
+                  {moment(c.FECHA_INICIO_CAMPANA).utc().format("DD/MM/YYYY")}
                 </td>
                 <td className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                   {c.phones}
                 </td>
-
                 <td className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                   <span
                     className={`px-3 py-1 rounded-sm text-xs font-medium border border-solid ${
-                      statusStyles[c.status]
+                      statusStylesById[c.ID_ESTADO_CAMPANA] ??
+                      "border-gray-400 text-gray-400"
                     }`}
                   >
-                    {c.status === "finalizado" && "Finalizado"}
-                    {c.status === "encurso" && "En Curso"}
-                    {c.status === "error" && "Error"}
+                    {c.ESTADO_CAMAPANA}
                   </span>
                 </td>
-
                 <td className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
                   <button className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 active:scale-[0.98] transition px-3 py-1.5 rounded-md text-sm cursor-pointer">
                     <Search className="text-lg" />

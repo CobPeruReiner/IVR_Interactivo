@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { check } from "express-validator";
 import { validarCampos } from "../Middleware/validar-campos.js";
-import { createCampanaRequest } from "../Controller/campaina.controller.js";
+import {
+  createCampanaRequest,
+  getCampanasRequest,
+} from "../Controller/campaina.controller.js";
 import { upload } from "../Middleware/upload.js";
 
 export const campainaRouter = Router();
@@ -33,3 +36,5 @@ campainaRouter.post(
   ],
   createCampanaRequest
 );
+
+campainaRouter.get("/get-campanas", getCampanasRequest);

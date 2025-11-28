@@ -1,9 +1,19 @@
-import type { RefObject } from "react";
 import type { Cartera } from "./Cartera";
 
-export type SaveCampanaResult =
-  | { ok: true }
-  | { ok: false; type: "validation" | "server" };
+export interface GetCampanasResponse {
+  ok: boolean;
+  campaigns: Campaign[];
+}
+
+export interface Campaign {
+  ID_CAMPANA: number;
+  NOMBRE_CAMPANA: string;
+  CARTERA_CAMPANA: string;
+  FECHA_INICIO_CAMPANA: Date;
+  phones: number;
+  ID_ESTADO_CAMPANA: number;
+  ESTADO_CAMAPANA: string;
+}
 
 export interface FormCampaignState {
   idCampaign: number | null;
@@ -15,31 +25,49 @@ export interface FormCampaignState {
   guionIVRCampaign: string;
 }
 
-export interface CampaignContextProps {
+export interface SaveCampanaResult {
+  ok: boolean;
+  type?: "validation" | "server";
+}
+
+export interface CampanaCSVRow {
+  NOMBRE_CLIENTE: string;
+  NUMERO: string;
+  MONTO: string;
+  FECHA_VENCIMIENTO: string;
+}
+
+export interface CSVResultado {
+  data: CampanaCSVRow[];
+  errores: string[];
+}
+
+export interface CampanasContextProps {
   formNCampaign: FormCampaignState;
   handleChangeCampaign: (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
     >
   ) => void;
-  refMNuevaCampaign: RefObject<HTMLDivElement | null>;
+
   mNuevaCampaign: boolean;
   openMNuevaCampaign: () => void;
   closeMNuevaCampaign: () => void;
+  refMNuevaCampaign: React.RefObject<HTMLDivElement | null>;
+
   postingNuevaCampaign: boolean;
   saveCampanaRequest: () => Promise<SaveCampanaResult>;
-  carteras: [] | Cartera[];
-}
 
-export interface Campaign {
-  id: number;
-  name: string;
-  category: string;
-  date: string;
-  phones: string;
-  status: "finalizado" | "encurso" | "error";
-}
+  carteras: Cartera[];
 
-export interface CampanasProps {
-  campaigns: Campaign[];
+  campanas: Campaign[];
+  loadingCampanas: boolean;
+  getCampanasRequest: () => Promise<void>;
+
+  csvPreview: CampanaCSVRow[];
+  setCsvPreview: React.Dispatch<React.SetStateAction<CampanaCSVRow[]>>;
+  csvErrores: string[];
+  setCsvErrores: React.Dispatch<React.SetStateAction<string[]>>;
+  clearFileCampaign: () => void;
+  setFileCampaign: (file: File | null) => void;
 }

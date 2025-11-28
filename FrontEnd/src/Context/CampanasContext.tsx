@@ -1,6 +1,6 @@
 import { createContext } from "react";
-import type { CampaignContextProps } from "../Interfaces/Campanas";
+import type { CampanasContextProps } from "../Interfaces/Campanas";
 
-export const CampanasContext = createContext<CampaignContextProps>(
-  {} as CampaignContextProps
+export const CampanasContext = createContext<CampanasContextProps>(
+  {} as CampanasContextProps
 );
