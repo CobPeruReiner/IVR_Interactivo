@@ -1,11 +1,29 @@
 services:
-  ivr-app:
-    container_name: ivr-interactivo
+  frontend:
+    container_name: ivr-frontend
+    image: ivr-frontend
     build:
-      context: .
-      dockerfile: Backend/Dockerfile
+      context: ./FrontEnd
+    env_file:
+      - ./FrontEnd/.env.production
+    command: npm run build
+    volumes:
+      - frontend-build:/app/dist
+    depends_on:
+      - backend
+
+  backend:
+    container_name: ivr-backend
+    image: ivr-backend
+    build:
+      context: ./Backend
     ports:
       - "4005:4005"
     env_file:
       - ./Backend/.env.production
-    restart: always
+    volumes:
+      - frontend-build:/app/public
+    command: ["node", "index.js"]
+
+volumes:
+  frontend-build:
