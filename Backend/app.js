@@ -3,6 +3,17 @@ import cors from "cors";
 import { authRouter } from "./Router/auth.routes.js";
 import { campainaRouter } from "./Router/campaina.routes.js";
 import { carterasRouter } from "./Router/carteras.routes.js";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(path.join(__dirname, "public")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 export const app = express();
 
